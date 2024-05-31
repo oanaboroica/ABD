@@ -1,0 +1,23 @@
+a) Get the states with a total population of over 10 million.
+
+db.ABD.aggregate([{$group: {_id: {state_name: "$state_name"}, state_population: {$sum: "$population"}}}, {$match: {state_population: {$gt: 10000000}}}])
+
+b) Get the average city population by state.
+
+db.ABD.aggregate([ { $group: { _id: {state_name: "$state_name"}, total_population: { $sum: "$population" }, All_cities: { $sum: 1 } } }, { $addFields: { Average_city_population_by_state: { $divide: ["$total_population", "$All_cities"] } } }] )
+
+c) Get the largest and the smallest city in each state.
+
+db.ABD.aggregate([ { $group: { _id: { state_name: "$state_name", city: "$city" }, population: { $sum: "$population" } } }, { $sort: { population: 1 } }, { $group: { _id: {state_name: "$_id.state_name"}, cities: { $push: { city: "$_id.city", population: "$population" } }} }, {$project: {_id: 1, smallest_city: { $arrayElemAt: ["$cities", 0] }, largest__city: { $arrayElemAt: ["$cities", -1] } }}])
+
+d) Get the largest and the smallest counties in each state.
+
+db.ABD.aggregate([{ $group: { _id: { state_name: "$state_name", county_name: "$county_name" }, population: { $sum: "$population" } } }, { $sort: { population: 1 } }, { $group: { _id: {state_name: "$_id.state_name"}, counties: { $push: { county_name: "$_id.county_name", population: "$population" } }} }, {$project: {_id: 1, smallest_county: { $arrayElemAt: ["$counties", 0] }, largest__county: { $arrayElemAt: ["$counties", -1] } }}])
+
+e) Get the nearest 10 zips from one of Chicago's landmarks, the Willis Tower situated at coordinates 41.878876, -87.635918.
+
+db.ABD.find({ location: { $near: { $geometry: { type: "Point", coordinates: [-87.635918, 41.878876] } } } }).limit(10)
+
+f) Get the total population situated between 50 and 200 kms around New York's landmark, the Statue of Liberty at coordinates 40.689247, -74.044502.
+
+db.ABD.aggregate([{$geoNear: { near: { type: "Point", coordinates : [-74.044502, 40.689247] }, distanceField: "distance", minDistance: 50000, maxDistance: 200000}}, { $group: { _id: 0, Population: {$sum: "$population"}}}]).toArray()[0].Population
